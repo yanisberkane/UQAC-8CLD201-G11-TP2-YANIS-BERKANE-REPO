@@ -1,0 +1,71 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "type": "String"
+        },
+        "location": {
+            "type": "String"
+        },
+        "skuName": {
+            "type": "String"
+        },
+        "skuTier": {
+            "type": "String"
+        },
+        "skuCapacity": {
+            "type": "Int"
+        },
+        "zoneRedundant": {
+            "type": "Bool"
+        },
+        "minimumTlsVersion": {
+            "type": "String"
+        },
+        "disableLocalAuth": {
+            "type": "Bool"
+        },
+        "publicNetworkAccess": {
+            "type": "String"
+        },
+        "tags": {
+            "type": "Object"
+        },
+        "queueName": {
+            "type": "String"
+        },
+        "queueProperties": {
+            "type": "Object"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ServiceBus/namespaces",
+            "apiVersion": "2023-01-01-preview",
+            "name": "[parameters('name')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tags')]",
+            "sku": {
+                "name": "[parameters('skuTier')]",
+                "tier": "[parameters('skuTier')]",
+                "capacity": "[parameters('skuCapacity')]"
+            },
+            "properties": {
+                "zoneRedundant": "[parameters('zoneRedundant')]",
+                "minimumTlsVersion": "[parameters('minimumTlsVersion')]",
+                "disableLocalAuth": "[parameters('disableLocalAuth')]",
+                "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
+            }
+        },
+        {
+            "type": "Microsoft.ServiceBus/namespaces/queues",
+            "apiVersion": "2024-01-01",
+            "name": "[concat(parameters('name'), '/', parameters('queueName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('name'))]"
+            ],
+            "properties": "[parameters('queueProperties')]"
+        }
+    ]
+}

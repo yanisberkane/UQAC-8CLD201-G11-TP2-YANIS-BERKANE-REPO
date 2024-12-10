@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "value": "picsqueue"
+        },
+        "location": {
+            "value": "canadacentral"
+        },
+        "skuName": {
+            "value": "Basic"
+        },
+        "skuTier": {
+            "value": "Basic"
+        },
+        "skuCapacity": {
+            "value": 1
+        },
+        "zoneRedundant": {
+            "value": false
+        },
+        "minimumTlsVersion": {
+            "value": "1.2"
+        },
+        "disableLocalAuth": {
+            "value": false
+        },
+        "publicNetworkAccess": {
+            "value": "Enabled"
+        },
+        "tags": {
+            "value": {}
+        },
+        "queueName": {
+            "value": "picsqueue"
+        },
+        "queueProperties": {
+            "value": {
+                "maxMessageSizeInKilobytes": 256,
+                "lockDuration": "PT1M",
+                "maxSizeInMegabytes": 1024,
+                "requiresDuplicateDetection": false,
+                "requiresSession": false,
+                "defaultMessageTimeToLive": "P14D",
+                "deadLetteringOnMessageExpiration": false,
+                "enableBatchedOperations": true,
+                "duplicateDetectionHistoryTimeWindow": "PT10M",
+                "maxDeliveryCount": 10,
+                "status": "Active",
+                "enablePartitioning": false,
+                "enableExpress": false
+            }
+        }
+
+    }
+}
