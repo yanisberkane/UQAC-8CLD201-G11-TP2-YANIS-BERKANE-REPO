@@ -67,5 +67,11 @@
             ],
             "properties": "[parameters('queueProperties')]"
         }
-    ]
+    ],
+  "outputs": {
+    "servicebusconnectionstring": {
+      "type": "String",
+      "value": "[concat('Endpoint=sb://', parameters('name'), '.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=', listKeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', parameters('name'), 'RootManageSharedAccessKey'), '2023-01-01-preview').primaryKey)]"
+    }
+  }
 }

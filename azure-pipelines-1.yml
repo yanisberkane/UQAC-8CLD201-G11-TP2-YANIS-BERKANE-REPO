@@ -1,0 +1,140 @@
+trigger:
+- main
+
+pool:
+  name: 'default'
+  vmImage: ubuntu-latest
+
+variables:
+  - name: location
+    value: 'Canada Central'
+  - name: serviceConnectionName
+    value: 'Azure subscription 1(7dd07ec2-89f0-4371-bbeb-dc4a444d816b)'
+  - name: azureSubscriptionId
+    value: '7dd07ec2-89f0-4371-bbeb-dc4a444d816b'
+  - name: blobContainerName
+    value: 'images'
+  - name: processedBlobContainerName
+    value: 'processed'
+  - name: queueName
+    value: 'picsqueue'
+  - name: blobStorageConnectionString
+  - name: serviceBusConnectionString
+
+stages:
+- stage: Infra
+  displayName: Infrastructure Deployment
+  jobs:
+  - job: Deploy
+    displayName: Infrastructure Deployment
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: $(serviceConnectionName)
+        subscriptionId: $(azureSubscriptionId)
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: 'tp2-RG-StorageAccount'
+        location: $(location)
+        templateLocation: 'Linked artifact'
+        csmFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.json'
+        csmParametersFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.parameters.json'
+        overrideParameters: '-uploadContainerName $(blobContainerName) -resultContainerName $(processedBlobContainerName)'
+        deploymentMode: 'Incremental'
+        displayName: 'Create Storage Account'
+    - script: |
+        echo ##vso[task.setvariable variable=blobStorageConnectionString;isOutput=true;isSecure=true]$(Deployment1.blobstoragestring.value)
+      name: AssignConnectionStringForBlobStorage
+  
+
+    - task: AzureResourceManagerTemplateDeployment@3
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: $(serviceConnectionName)
+        subscriptionId: $(azureSubscriptionId)
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: 'tp2-RG-ServiceBus'
+        location: $(location)
+        templateLocation: 'Linked artifact'
+        csmFile: '$(Build.SourcesDirectory)/serviceBusRG/azuredeploy.json'
+        csmParametersFile: '$(Build.SourcesDirectory)/serviceBusRG/azuredeploy.parameters.json'
+        overrideParameters: '-queueName $(queueName)'
+        deploymentMode: 'Incremental'
+        displayName: 'Create Service Bus'
+    - script: |
+        echo ##vso[task.setvariable variable=serviceBusConnectionString;isOutput=true;isSecure=true]$(Deployment2.servicebusconnectionstring.value)
+      name: AssignConnectionStringForServiceBus
+
+- stage: FunctionsDeployment
+  displayName: Functions Deployment
+  dependsOn: Infra
+  jobs:
+  - job: BuildBlobTrigger
+    displayName: Build Blob Trigger
+    steps:
+    - task: Bash@3
+      displayName: 'Install pip requirements'
+      inputs:
+        targetType: 'inline'
+        script: |
+          python -m pip install --upgrade pip
+          pip install --target="./.python_packages/lib/site-packages" -r ./requirements.txt
+        workingDirectory: '$(Build.SourcesDirectory)/blobTriggerFuncApp'
+
+    # Zip function contents
+    - task: ArchiveFiles@2
+      displayName: Zip function contents
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)/blobTriggerFuncApp'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+
+    # Publish zip file as artifact
+    - task: AzureFunctionApp@2
+      inputs:
+        connectedServiceNameARM: $(serviceConnectionName)
+        appType: 'functionAppLinux'
+        deployToSlotOrASE: true
+        resourceGroupName: 'tp2-RG-filetriggerfunc'
+        appName: 'filetriggerfunc'
+        slotName: 'production'
+        deploymentMethod: 'runFromPackage'
+        package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        appSettings: '-AzureWebJobsStorage $(blobStorageConnectionString) -FUNCTIONS_WORKER_RUNTIME python -BLOB_CONTAINER_NAME $(blobContainerName) -PROCESSED_BLOB_CONTAINER_NAME $(processedBlobContainerName) -QUEUE_NAME $(queueName) -SERVICE_BUS_CONN_STR $(serviceBusConnectionString)'
+
+  - job: BuildQueueTrigger
+    displayName: Build Queue Trigger
+    steps:
+    - task: Bash@3
+      displayName: 'Install pip requirements'
+      inputs:
+        targetType: 'inline'
+        script: |
+          python -m pip install --upgrade pip
+          pip install --target="./.python_packages/lib/site-packages" -r ./requirements.txt
+        workingDirectory: '$(Build.SourcesDirectory)/queueTriggerFuncApp'
+
+    # Zip function contents
+    - task: ArchiveFiles@2
+      displayName: Zip function contents
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)/queueTriggerFuncApp'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+
+    # Publish zip file as artifact
+    - task: AzureFunctionApp@2
+      inputs:
+        connectedServiceNameARM: $(serviceConnectionName)
+        appType: 'functionAppLinux'
+        deployToSlotOrASE: true
+        resourceGroupName: 'tp2-RG-filequeuetriggerfunc'
+        appName: 'filequeuetriggerfunc'
+        slotName: 'production'
+        deploymentMethod: 'runFromPackage'
+        package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        appSettings: '-AzureWebJobsStorage $(blobStorageConnectionString) -FUNCTIONS_WORKER_RUNTIME python -BLOB_CONTAINER_NAME $(blobContainerName) -PROCESSED_BLOB_CONTAINER_NAME $(processedBlobContainerName) -QUEUE_NAME $(queueName) -SERVICE_BUS_CONN_STR $(serviceBusConnectionString)'
