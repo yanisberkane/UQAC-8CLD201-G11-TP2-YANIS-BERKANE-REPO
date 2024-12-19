@@ -1,0 +1,50 @@
+trigger:
+- main
+
+pool:
+  name: 'default'
+  vmImage: ubuntu-latest
+
+variables:
+  - name: location
+    value: 'Canada Central'
+  - name: serviceConnectionName
+    value: 'Azure subscription 1(7dd07ec2-89f0-4371-bbeb-dc4a444d816b)'
+  - name: azureSubscriptionId
+    value: '7dd07ec2-89f0-4371-bbeb-dc4a444d816b'
+  - name: blobContainerName
+    value: 'images'
+  - name: processedBlobContainerName
+    value: 'processed'
+  - name: queueName
+    value: 'picsqueue'
+
+steps:
+  - task: AzureResourceManagerTemplateDeployment@3
+    inputs:
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(serviceConnectionName)
+      subscriptionId: $(azureSubscriptionId)
+      action: 'Create Or Update Resource Group'
+      resourceGroupName: 'tp2-RG-StorageAccount'
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      csmFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.json'
+      csmParametersFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.parameters.json'
+      overrideParameters: '-uploadContainerName $(blobContainerName) -resultContainerName $(processedBlobContainerName)'
+      deploymentMode: 'Validation'
+  
+
+  - task: AzureResourceManagerTemplateDeployment@3
+    inputs:
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(serviceConnectionName)
+      subscriptionId: $(azureSubscriptionId)
+      action: 'Create Or Update Resource Group'
+      resourceGroupName: 'tp2-RG-ServiceBus'
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      csmFile: '$(Build.SourcesDirectory)/serviceBusRG/azuredeploy.json'
+      csmParametersFile: '$(Build.SourcesDirectory)/serviceBusRG/azuredeploy.parameters.json'
+      overrideParameters: '-queueName $(queueName)'
+      deploymentMode: 'Validation'
