@@ -14,7 +14,7 @@ BLOB_CONTAINER = os.getenv("BLOB_CONTAINER_NAME")
 PROCESSED_BLOB_CONTAINER = os.getenv("PROCESSED_BLOB_CONTAINER_NAME")
 IMG_PATH = BLOB_CONTAINER + "/{name}.png"
 
-@app.service_bus_queue_trigger(arg_name="azservicebus", queue_name=QUEUE_NAME,
+@app.service_bus_queue_trigger(arg_name="azservicebus", queue_name="QUEUE_NAME",
                                connection="SERVICE_BUS_CONN_STR") 
 def servicebus_trigger(azservicebus: func.ServiceBusMessage):
     try:
