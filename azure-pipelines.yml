@@ -26,21 +26,6 @@ steps:
       azureResourceManagerConnection: $(serviceConnectionName)
       subscriptionId: $(azureSubscriptionId)
       action: 'Create Or Update Resource Group'
-      resourceGroupName: 'tp2-RG-StorageAccount'
-      location: $(location)
-      templateLocation: 'Linked artifact'
-      csmFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.json'
-      csmParametersFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.parameters.json'
-      overrideParameters: '-uploadContainerName $(blobContainerName) -resultContainerName $(processedBlobContainerName)'
-      deploymentMode: 'Validation'
-  
-
-  - task: AzureResourceManagerTemplateDeployment@3
-    inputs:
-      deploymentScope: 'Resource Group'
-      azureResourceManagerConnection: $(serviceConnectionName)
-      subscriptionId: $(azureSubscriptionId)
-      action: 'Create Or Update Resource Group'
       resourceGroupName: 'tp2-RG-ServiceBus'
       location: $(location)
       templateLocation: 'Linked artifact'
@@ -48,3 +33,21 @@ steps:
       csmParametersFile: '$(Build.SourcesDirectory)/serviceBusRG/azuredeploy.parameters.json'
       overrideParameters: '-queueName $(queueName)'
       deploymentMode: 'Validation'
+    displayName: 'Validation ARM Service Bus'
+  
+  - task: AzureResourceManagerTemplateDeployment@3
+    inputs:
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(serviceConnectionName)
+      subscriptionId: $(azureSubscriptionId)
+      action: 'Create Or Update Resource Group'
+      resourceGroupName: 'tp2-RG-StorageAccount'
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      csmFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.json'
+      csmParametersFile: '$(Build.SourcesDirectory)/storageAccountRG/azuredeploy.parameters.json'
+      overrideParameters: '-uploadContainerName $(blobContainerName) -resultContainerName $(processedBlobContainerName)'
+      deploymentMode: 'Validation'
+    displayName: 'Validation ARM SA'
+
+  
